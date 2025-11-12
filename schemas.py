@@ -1,48 +1,52 @@
 """
-Database Schemas
+Database Schemas for TechVista HR Document Access System
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model maps to a MongoDB collection (lowercased class name).
 """
-
+from __future__ import annotations
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
+Department = Literal[
+    "Engineering",
+    "Sales",
+    "Marketing",
+    "Operations",
+    "Finance",
+    "Customer Support",
+    "Design",
+]
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+DocType = Literal[
+    "Policies",
+    "Forms",
+    "Templates",
+    "Guides",
+    "Checklists",
+]
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+FileFormat = Literal["PDF", "DOCX", "XLSX"]
 
-# Add your own schemas here:
-# --------------------------------------------------
+class Document(BaseModel):
+    title: str = Field(..., description="Document title")
+    doc_type: DocType = Field(..., description="High-level document type")
+    departments: List[Department] = Field(default_factory=list, description="Related departments")
+    last_updated: datetime = Field(..., description="Last updated timestamp")
+    version: str = Field(..., description="Semantic or incremental version string")
+    latest: bool = Field(True, description="Whether this is the latest version")
+    size_kb: int = Field(..., ge=0, description="Approximate file size in KB")
+    format: FileFormat = Field(..., description="File format")
+    canonical_id: str = Field(..., description="Stable canonical ID for this document across versions")
+    download_url: str = Field(..., description="Direct download URL of this version")
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Favorite(BaseModel):
+    user_id: str = Field(..., description="User identifier (e.g., email)")
+    document_id: str = Field(..., description="Mongo _id string of a document")
+    note: Optional[str] = Field(None, description="Optional note from the user")
+
+class Bookmark(BaseModel):
+    name: str = Field(..., description="Bookmark name")
+    owner: str = Field(..., description="Owner (user or team)")
+    document_id: str = Field(..., description="Mongo _id string of a document")
+    shared: bool = Field(False, description="Whether this bookmark is shared with the team")
